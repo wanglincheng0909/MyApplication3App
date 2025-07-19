@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>真实访问监控面板</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f0f23;
+            color: #cccccc;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #00d4ff, #0099cc);
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9em;
+        }
+
+        .controls {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn {
+            background: #00d4ff;
+            color: #0f0f23;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: #0099cc;
+            transform: translateY(-2px);
+        }
+
+        .btn.danger {
+            background: #F44336;
+            color: white;
+        }
+
+        .btn.danger:hover {
+            background: #d32f2f;
+        }
+
+        .access-table {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .table-header {
+            background: #2a2a3e;
+            padding: 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
+            font-size: 1.2em;
+            color: #00d4ff;
+        }
+
+        .table-container {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+
+        th {
+            background: #2a2a3e;
+            color: #00d4ff;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tr:hover {
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .device-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .device-icon {
+            font-size: 1.2em;
+        }
+
+        .location-info {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-success {
+            color: #4CAF50;
+        }
+
+        .status-error {
+            color: #F44336;
+        }
+
+        .timestamp {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #333;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #00d4ff;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .table-container {
+                overflow-x: auto;
+            }
+            
+            table {
+                min-width: 800px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 真实访问监控面板</h1>
+        <p>MyApplication3 版本检查真实访问数据统计</p>
+    </div>
+
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalAccess">0</div>
+                <div class="stat-label">总访问次数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="todayAccess">0</div>
+                <div class="stat-label">今日访问</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="uniqueIPs">0</div>
+                <div class="stat-label">独立IP</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avgResponseTime">0ms</div>
+                <div class="stat-label">平均响应时间</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn" onclick="refreshData()">
+                🔄 刷新数据
+            </button>
+            <button class="btn" onclick="exportData()">
+                📤 导出数据
+            </button>
+            <button class="btn danger" onclick="clearData()">
+                🗑️ 清除数据
+            </button>
+            <div class="auto-refresh">
+                <span>自动刷新:</span>
+                <label class="switch">
+                    <input type="checkbox" id="autoRefresh" onchange="toggleAutoRefresh()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <span id="lastUpdate">最后更新: --</span>
+        </div>
+
+        <div class="access-table">
+            <div class="table-header">
+                <div class="table-title">📋 访问记录详情</div>
+                <div>共 <span id="recordCount">0</span> 条记录</div>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>IP地址</th>
+                            <th>位置</th>
+                            <th>设备</th>
+                            <th>应用版本</th>
+                            <th>响应时间</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accessTableBody">
+                        <tr>
+                            <td colspan="7" class="loading">正在加载数据...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let autoRefreshInterval = null;
+        let lastRefreshTime = null;
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshData();
+        });
+
+        // 刷新数据
+        async function refreshData() {
+            try {
+                const response = await fetch('get_access_logs.php');
+                if (!response.ok) {
+                    throw new Error('网络请求失败');
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                updateStats(data.stats);
+                updateTable(data.logs);
+                
+                lastRefreshTime = new Date();
+                document.getElementById('lastUpdate').textContent = 
+                    '最后更新: ' + lastRefreshTime.toLocaleTimeString();
+                
+            } catch (error) {
+                console.error('刷新数据失败:', error);
+                document.getElementById('accessTableBody').innerHTML = 
+                    `<tr><td colspan="7" class="no-data">❌ 加载失败: ${error.message}</td></tr>`;
+            }
+        }
+
+        // 更新统计数据
+        function updateStats(stats) {
+            document.getElementById('totalAccess').textContent = stats.total || 0;
+            document.getElementById('todayAccess').textContent = stats.today || 0;
+            document.getElementById('uniqueIPs').textContent = stats.unique_ips || 0;
+            document.getElementById('avgResponseTime').textContent = (stats.avg_response_time || 0) + 'ms';
+        }
+
+        // 更新表格数据
+        function updateTable(logs) {
+            const tbody = document.getElementById('accessTableBody');
+            document.getElementById('recordCount').textContent = logs.length;
+            
+            if (logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-data">📭 暂无访问记录</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = logs.map(log => {
+                const deviceIcon = getDeviceIcon(log.device_type, log.platform);
+                const locationText = `${log.city || '未知'}, ${log.country || '未知'}`;
+                const statusClass = log.status_code === 200 ? 'status-success' : 'status-error';
+                
+                return `
+                    <tr>
+                        <td class="timestamp">${formatTimestamp(log.timestamp)}</td>
+                        <td>${log.ip_address}</td>
+                        <td class="location-info">
+                            <span>🌍</span>
+                            <span>${locationText}</span>
+                        </td>
+                        <td class="device-info">
+                            <span class="device-icon">${deviceIcon}</span>
+                            <div>
+                                <div>${log.device_type || '未知设备'}</div>
+                                <small style="color: #888;">${log.platform || '未知平台'}</small>
+                            </div>
+                        </td>
+                        <td>${log.app_version || '未知'}</td>
+                        <td>${log.response_time || 0}ms</td>
+                        <td class="${statusClass}">${log.status_code || 200}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 获取设备图标
+        function getDeviceIcon(deviceType, platform) {
+            if (platform && platform.toLowerCase().includes('android')) return '📱';
+            if (platform && platform.toLowerCase().includes('ios')) return '📱';
+            if (deviceType && deviceType.toLowerCase().includes('mobile')) return '📱';
+            if (deviceType && deviceType.toLowerCase().includes('tablet')) return '📱';
+            return '💻';
+        }
+
+        // 格式化时间戳
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        // 切换自动刷新
+        function toggleAutoRefresh() {
+            const checkbox = document.getElementById('autoRefresh');
+            
+            if (checkbox.checked) {
+                autoRefreshInterval = setInterval(refreshData, 30000); // 30秒刷新一次
+                console.log('自动刷新已启用');
+            } else {
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                    autoRefreshInterval = null;
+                }
+                console.log('自动刷新已禁用');
+            }
+        }
+
+        // 导出数据
+        async function exportData() {
+            try {
+                const response = await fetch('export_access_logs.php');
+                if (!response.ok) {
+                    throw new Error('导出失败');
+                }
+                
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `access_logs_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+            } catch (error) {
+                alert('导出失败: ' + error.message);
+            }
+        }
+
+        // 清除数据
+        async function clearData() {
+            if (!confirm('确定要清除所有访问记录吗？此操作不可恢复！')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('clear_access_logs.php', {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('清除失败');
+                }
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('数据已清除');
+                    refreshData();
+                } else {
+                    throw new Error(result.error || '清除失败');
+                }
+                
+            } catch (error) {
+                alert('清除失败: ' + error.message);
+            }
+        }
+
+        // 页面关闭时清理定时器
+        window.addEventListener('beforeunload', function() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>
